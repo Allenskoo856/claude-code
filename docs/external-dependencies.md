@@ -11,21 +11,12 @@
 | 3 | Google Vertex AI | `{region}-aiplatform.googleapis.com` | HTTPS | 需 `CLAUDE_CODE_USE_VERTEX=1` |
 | 4 | Azure Foundry | `{resource}.services.ai.azure.com` | HTTPS | 需 `CLAUDE_CODE_USE_FOUNDRY=1` |
 | 5 | OAuth (Anthropic) | `platform.claude.com`, `claude.com`, `claude.ai` | HTTPS | 用户登录时 |
-| 6 | GrowthBook | `api.anthropic.com` (remoteEval) | HTTPS | 默认启用 |
-| 7 | Sentry | 可配置 (`SENTRY_DSN`) | HTTPS | 需设环境变量 |
-| 8 | Datadog | 可配置 (`DATADOG_LOGS_ENDPOINT`) | HTTPS | 需设环境变量 |
-| 9 | OpenTelemetry Collector | 可配置 (`OTEL_EXPORTER_OTLP_ENDPOINT`) | gRPC/HTTP | 需设环境变量 |
-| 10 | 1P Event Logging | `api.anthropic.com/api/event_logging/batch` | HTTPS | 默认启用 |
-| 11 | BigQuery Metrics | `api.anthropic.com/api/claude_code/metrics` | HTTPS | 默认启用 |
 | 12 | MCP Proxy | `mcp-proxy.anthropic.com` | HTTPS+WS | 使用 MCP 工具时 |
 | 13 | MCP Registry | `api.anthropic.com/mcp-registry` | HTTPS | 查询 MCP 服务器时 |
 | 14 | Bing Search | `www.bing.com` | HTTPS | WebSearch 工具 |
-| 15 | Google Cloud Storage (更新) | `storage.googleapis.com` | HTTPS | 版本检查 |
-| 16 | GitHub Raw (Changelog/Stats) | `raw.githubusercontent.com` | HTTPS | 更新提示 |
 | 17 | Claude in Chrome Bridge | `bridge.claudeusercontent.com` | WSS | Chrome 集成 |
 | 18 | CCR Upstream Proxy | `api.anthropic.com` | WS | CCR 远程会话 |
 | 19 | Voice STT | `api.anthropic.com/api/ws/...` | WSS | Voice Mode |
-| 20 | Desktop App Download | `claude.ai/api/desktop/...` | HTTPS | 下载引导 |
 
 ---
 
@@ -72,40 +63,6 @@ OAuth 2.0 + PKCE 授权码流程。
   - `https://claude.fedstart.com` — FedStart 政府部署
 - **文件**: `src/constants/oauth.ts`, `src/services/oauth/`
 
-### 6. GrowthBook (功能开关)
-
-- **端点**: `https://api.anthropic.com/` (remoteEval 模式) 或 `CLAUDE_GB_ADAPTER_URL`
-- **SDK Keys**: `sdk-zAZezfDKGoZuXXKe` (外部), `sdk-xRVcrliHIlrg4og4` (ant prod), `sdk-yZQvlplybuXjYh6L` (ant dev)
-- **文件**: `src/services/analytics/growthbook.ts`, `src/constants/keys.ts`
-
-### 7. Sentry (错误追踪)
-
-- **激活**: 设置 `SENTRY_DSN` (默认未配置)
-- **行为**: 仅错误上报，自动过滤敏感 header
-- **文件**: `src/utils/sentry.ts`
-
-### 8. Datadog (日志)
-
-- **激活**: 同时设 `DATADOG_LOGS_ENDPOINT` + `DATADOG_API_KEY` (默认未配置)
-- **文件**: `src/services/analytics/datadog.ts`
-
-### 9. OpenTelemetry Collector
-
-- **激活**: `CLAUDE_CODE_ENABLE_TELEMETRY=1` 或 `OTEL_*` 环境变量
-- **协议**: gRPC / HTTP / Protobuf，支持 OTLP 和 Prometheus 导出
-- **文件**: `src/utils/telemetry/instrumentation.ts`
-
-### 10. 1P Event Logging (内部事件)
-
-- **端点**: `https://api.anthropic.com/api/event_logging/batch`
-- **协议**: 批量导出 (10s 间隔, 每批 200 事件)
-- **文件**: `src/services/analytics/firstPartyEventLoggingExporter.ts`
-
-### 11. BigQuery Metrics
-
-- **端点**: `https://api.anthropic.com/api/claude_code/metrics`
-- **文件**: `src/utils/telemetry/bigqueryExporter.ts`
-
 ### 12. MCP Proxy
 
 Anthropic 托管的 MCP 服务器代理。
@@ -128,21 +85,6 @@ WebSearch 工具的默认适配器，抓取 Bing 搜索结果。
 - **端点**: `https://www.bing.com/search?q={query}&setmkt=en-US`
 - **文件**: `src/tools/WebSearchTool/adapters/bingAdapter.ts`
 
-另外还有 Domain Blocklist 查询:
-- **端点**: `https://api.anthropic.com/api/web/domain_info?domain={domain}`
-- **文件**: `src/tools/WebFetchTool/utils.ts`
-
-### 15. Google Cloud Storage (自动更新)
-
-- **端点**: `https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases`
-- **文件**: `src/utils/autoUpdater.ts`
-
-### 16. GitHub Raw Content
-
-- **端点**: `https://raw.githubusercontent.com/anthropics/claude-code/refs/heads/main/CHANGELOG.md`
-- **端点**: `https://raw.githubusercontent.com/anthropics/claude-plugins-official/refs/heads/stats/stats/plugin-installs.json`
-- **文件**: `src/utils/releaseNotes.ts`, `src/utils/plugins/installCounts.ts`
-
 ### 17. Claude in Chrome Bridge
 
 - **端点**: `wss://bridge.claudeusercontent.com` (生产) / `wss://bridge-staging.claudeusercontent.com` (staging)
@@ -159,12 +101,6 @@ WebSearch 工具的默认适配器，抓取 Bing 搜索结果。
 - **端点**: `wss://api.anthropic.com/api/ws/...`
 - **文件**: `src/services/voiceStreamSTT.ts`
 
-### 20. Desktop App Download
-
-- **端点**: `https://claude.ai/api/desktop/win32/x64/exe/latest/redirect` (Windows)
-- **端点**: `https://claude.ai/api/desktop/darwin/universal/dmg/latest/redirect` (macOS)
-- **文件**: `src/components/DesktopHandoff.tsx`
-
 ---
 
 ## Anthropic API 辅助端点汇总
@@ -173,17 +109,12 @@ WebSearch 工具的默认适配器，抓取 Bing 搜索结果。
 
 | 端点路径 | 用途 | 文件 |
 |---|---|---|
-| `/api/event_logging/batch` | 事件批量上报 | `src/services/analytics/firstPartyEventLoggingExporter.ts` |
-| `/api/claude_code/metrics` | BigQuery 指标导出 | `src/utils/telemetry/bigqueryExporter.ts` |
 | `/api/oauth/claude_cli/create_api_key` | 创建 API Key | `src/constants/oauth.ts` |
 | `/api/oauth/claude_cli/roles` | 获取用户角色 | `src/constants/oauth.ts` |
 | `/api/oauth/accounts/grove` | 通知设置 | `src/services/api/grove.ts` |
 | `/api/oauth/organizations/{id}/referral/*` | 推荐活动 | `src/services/api/referral.ts` |
 | `/api/oauth/organizations/{id}/overage_credit_grant` | 超额信用 | `src/services/api/overageCreditGrant.ts` |
 | `/api/oauth/organizations/{id}/admin_requests` | 管理请求 | `src/services/api/adminRequests.ts` |
-| `/api/web/domain_info?domain={}` | 域名安全检查 | `src/tools/WebFetchTool/utils.ts` |
-| `/api/claude_code/settings` | 设置同步 | `src/services/settingsSync/index.ts` |
-| `/api/claude_code/managed_settings` | 企业托管设置 (1h 轮询) | `src/services/remoteManagedSettings/index.ts` |
 | `/api/claude_code/team_memory?repo={}` | 团队记忆同步 | `src/services/teamMemorySync/index.ts` |
 | `/api/auth/trusted_devices` | 可信设备注册 | `src/bridge/trustedDevice.ts` |
 | `/api/organizations/{id}/claude_code/buddy_react` | Companion 反应 | `src/buddy/companionReact.ts` |
@@ -201,9 +132,7 @@ WebSearch 工具的默认适配器，抓取 Bing 搜索结果。
 | `{region}-aiplatform.googleapis.com` | Google Vertex AI | HTTPS |
 | `{resource}.services.ai.azure.com` | Azure Foundry | HTTPS |
 | `www.bing.com` | Bing 搜索 | HTTPS |
-| `storage.googleapis.com` | 自动更新 | HTTPS |
-| `raw.githubusercontent.com` | Changelog / 插件统计 | HTTPS |
 | `bridge.claudeusercontent.com` | Chrome Bridge | WSS |
 | `platform.claude.com` | OAuth 授权页 | HTTPS |
-| `claude.com` / `claude.ai` | OAuth / 下载 | HTTPS |
+| `claude.com` / `claude.ai` | OAuth | HTTPS |
 | `claude.fedstart.com` | FedStart OAuth | HTTPS |

@@ -22,8 +22,6 @@ import { sleep } from '../sleep.js'
 import { jsonStringify, writeFileSync_DEPRECATED } from '../slowOperations.js'
 import { getBinaryName, getPlatform } from './installer.js'
 
-const GCS_BUCKET_URL =
-  'https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases'
 export const ARTIFACTORY_REGISTRY_URL =
   'https://artifactory.infra.ant.dev/artifactory/api/npm/npm-all/'
 
@@ -144,8 +142,8 @@ export async function getLatestVersion(
     return getLatestVersionFromArtifactory(npmTag)
   }
 
-  // Use GCS for external users
-  return getLatestVersionFromBinaryRepo(channel, GCS_BUCKET_URL)
+  // External binary auto-update is disabled.
+  return MACRO.VERSION
 }
 
 export async function downloadVersionFromArtifactory(
@@ -497,13 +495,10 @@ export async function downloadVersion(
       'auth',
       'print-access-token',
     ])
-    await downloadVersionFromBinaryRepo(
-      version,
-      stagingPath,
-      'https://storage.googleapis.com/claude-code-ci-sentinel',
-      { headers: { Authorization: `Bearer ${stdout.trim()}` } },
-    )
-    return 'binary'
+    void version
+    void stagingPath
+    void stdout
+    throw new Error('Binary download disabled')
   }
 
   if (process.env.USER_TYPE === 'ant') {
@@ -512,9 +507,7 @@ export async function downloadVersion(
     return 'npm'
   }
 
-  // Use GCS for external users
-  await downloadVersionFromBinaryRepo(version, stagingPath, GCS_BUCKET_URL)
-  return 'binary'
+  throw new Error('Binary download disabled')
 }
 
 // Exported for testing

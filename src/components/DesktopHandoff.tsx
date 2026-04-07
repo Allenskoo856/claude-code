@@ -15,12 +15,7 @@ import { LoadingState } from './design-system/LoadingState.js'
 const DESKTOP_DOCS_URL = 'https://clau.de/desktop'
 
 export function getDownloadUrl(): string {
-  switch (process.platform) {
-    case 'win32':
-      return 'https://claude.ai/api/desktop/win32/x64/exe/latest/redirect'
-    default:
-      return 'https://claude.ai/api/desktop/darwin/universal/dmg/latest/redirect'
-  }
+  return DESKTOP_DOCS_URL
 }
 
 type DesktopHandoffState =
