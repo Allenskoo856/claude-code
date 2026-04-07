@@ -57,14 +57,7 @@ export function stripProtoFields<V>(
   return result ?? metadata
 }
 
-// Internal type for logEvent metadata - different from the enriched EventMetadata in metadata.ts
 type LogEventMetadata = { [key: string]: boolean | number | undefined }
-
-type QueuedEvent = {
-  eventName: string
-  metadata: LogEventMetadata
-  async: boolean
-}
 
 /**
  * Sink interface for the analytics backend
@@ -77,50 +70,10 @@ export type AnalyticsSink = {
   ) => Promise<void>
 }
 
-// Event queue for events logged before sink is attached
-const eventQueue: QueuedEvent[] = []
-
-// Sink - initialized during app startup
-let sink: AnalyticsSink | null = null
-
 /**
  * Attach the analytics sink that will receive all events.
- * Queued events are drained asynchronously via queueMicrotask to avoid
- * adding latency to the startup path.
- *
- * Idempotent: if a sink is already attached, this is a no-op. This allows
- * calling from both the preAction hook (for subcommands) and setup() (for
- * the default command) without coordination.
  */
-export function attachAnalyticsSink(newSink: AnalyticsSink): void {
-  if (sink !== null) {
-    return
-  }
-  sink = newSink
-
-  // Drain the queue asynchronously to avoid blocking startup
-  if (eventQueue.length > 0) {
-    const queuedEvents = [...eventQueue]
-    eventQueue.length = 0
-
-    // Log queue size for ants to help debug analytics initialization timing
-    if (process.env.USER_TYPE === 'ant') {
-      sink.logEvent('analytics_sink_attached', {
-        queued_event_count: queuedEvents.length,
-      })
-    }
-
-    queueMicrotask(() => {
-      for (const event of queuedEvents) {
-        if (event.async) {
-          void sink!.logEventAsync(event.eventName, event.metadata)
-        } else {
-          sink!.logEvent(event.eventName, event.metadata)
-        }
-      }
-    })
-  }
-}
+export function attachAnalyticsSink(_newSink: AnalyticsSink): void {}
 
 /**
  * Log an event to analytics backends (synchronous)
@@ -136,11 +89,8 @@ export function logEvent(
   // to avoid accidentally logging code/filepaths
   metadata: LogEventMetadata,
 ): void {
-  if (sink === null) {
-    eventQueue.push({ eventName, metadata, async: false })
-    return
-  }
-  sink.logEvent(eventName, metadata)
+  void eventName
+  void metadata
 }
 
 /**
@@ -156,11 +106,8 @@ export async function logEventAsync(
   // intentionally no strings, to avoid accidentally logging code/filepaths
   metadata: LogEventMetadata,
 ): Promise<void> {
-  if (sink === null) {
-    eventQueue.push({ eventName, metadata, async: true })
-    return
-  }
-  await sink.logEventAsync(eventName, metadata)
+  void eventName
+  void metadata
 }
 
 /**
@@ -168,6 +115,5 @@ export async function logEventAsync(
  * @internal
  */
 export function _resetForTesting(): void {
-  sink = null
-  eventQueue.length = 0
+  return
 }
