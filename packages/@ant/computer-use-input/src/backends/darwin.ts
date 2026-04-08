@@ -5,7 +5,7 @@
  * mouse and keyboard via CoreGraphics events and System Events.
  */
 
-import { $ } from 'bun'
+import { spawn, spawnSync } from 'node:child_process'
 import type { FrontmostAppInfo, InputBackend } from '../types.js'
 
 const KEY_MAP: Record<string, number> = {
@@ -24,14 +24,25 @@ const MODIFIER_MAP: Record<string, string> = {
   control: 'control down', ctrl: 'control down',
 }
 
+async function runCommand(cmd: string, args: string[]): Promise<string> {
+  return new Promise(resolve => {
+    const child = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+    let stdout = ''
+
+    child.stdout.on('data', chunk => {
+      stdout += String(chunk)
+    })
+    child.on('error', () => resolve(''))
+    child.on('close', () => resolve(stdout.trim()))
+  })
+}
+
 async function osascript(script: string): Promise<string> {
-  const result = await $`osascript -e ${script}`.quiet().nothrow().text()
-  return result.trim()
+  return runCommand('osascript', ['-e', script])
 }
 
 async function jxa(script: string): Promise<string> {
-  const result = await $`osascript -l JavaScript -e ${script}`.quiet().nothrow().text()
-  return result.trim()
+  return runCommand('osascript', ['-l', 'JavaScript', '-e', script])
 }
 
 function buildMouseJxa(eventType: string, x: number, y: number, btn: number, clickState?: number): string {
@@ -115,19 +126,15 @@ export const typeText: InputBackend['typeText'] = async (text) => {
 
 export const getFrontmostAppInfo: InputBackend['getFrontmostAppInfo'] = () => {
   try {
-    const result = Bun.spawnSync({
-      cmd: ['osascript', '-e', `
+    const result = spawnSync('osascript', ['-e', `
         tell application "System Events"
           set frontApp to first application process whose frontmost is true
           set appName to name of frontApp
           set bundleId to bundle identifier of frontApp
           return bundleId & "|" & appName
         end tell
-      `],
-      stdout: 'pipe',
-      stderr: 'pipe',
-    })
-    const output = new TextDecoder().decode(result.stdout).trim()
+      `], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+    const output = (result.stdout || '').trim()
     if (!output || !output.includes('|')) return null
     const [bundleId, appName] = output.split('|', 2)
     return { bundleId: bundleId!, appName: appName! }
