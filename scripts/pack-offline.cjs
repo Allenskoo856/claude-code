@@ -7,7 +7,6 @@
  *
  * This package includes:
  * - dist/
- * - node_modules/
  * - scripts/postinstall.cjs
  * - a trimmed package.json
  */
@@ -22,10 +21,22 @@ const pkg = JSON.parse(
   fs.readFileSync(path.join(root, 'package.json'), 'utf8'),
 )
 
+// Optional version suffix/override for CI releases.
+// Examples:
+// - OFFLINE_VERSION_SUFFIX=abc123  -> 1.1.0-abc123
+// - OFFLINE_VERSION_OVERRIDE=1.1.0-abc123
+const versionSuffix = process.env.OFFLINE_VERSION_SUFFIX?.trim()
+const versionOverride = process.env.OFFLINE_VERSION_OVERRIDE?.trim()
+const offlineVersion = versionOverride
+  ? versionOverride
+  : versionSuffix
+    ? `${pkg.version}-${versionSuffix}`
+    : pkg.version
+
 const offlineRoot = path.join(root, 'offline-dist')
 const stageRoot = path.join(offlineRoot, 'stage')
 const stagePkgDir = path.join(stageRoot, 'package')
-const tarName = `${pkg.name}-${pkg.version}-offline.tgz`
+const tarName = `${pkg.name}-${offlineVersion}-offline.tgz`
 const tarPath = path.join(offlineRoot, tarName)
 
 function assertExists(p) {
@@ -36,8 +47,6 @@ function assertExists(p) {
 
 async function main() {
   assertExists(path.join(root, 'dist'))
-  assertExists(path.join(root, 'node_modules'))
-
   await fsp.rm(offlineRoot, { recursive: true, force: true })
   await fsp.mkdir(stagePkgDir, { recursive: true })
 
@@ -61,12 +70,6 @@ async function main() {
     path.join(stagePkgDir, 'scripts', 'postinstall.cjs'),
     { recursive: false },
   )
-  await fsp.cp(
-    path.join(root, 'node_modules'),
-    path.join(stagePkgDir, 'node_modules'),
-    { recursive: true },
-  )
-
   const offlinePkg = {
     name: pkg.name,
     version: pkg.version,

@@ -1,0 +1,51 @@
+name: Offline Release
+
+on:
+  push:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compute release metadata
+        id: meta
+        shell: bash
+        run: |
+          SHORT_SHA="${GITHUB_SHA::8}"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          echo "tag=offline-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "version_suffix=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Build offline tarball
+        env:
+          OFFLINE_VERSION_SUFFIX: ${{ steps.meta.outputs.version_suffix }}
+        run: npm run pack:offline
+
+      - name: Publish GitHub Release with artifact
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: Offline Build ${{ steps.meta.outputs.short_sha }}
+          generate_release_notes: true
+          files: |
+            offline-dist/*.tgz
