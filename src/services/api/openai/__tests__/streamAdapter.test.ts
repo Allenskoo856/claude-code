@@ -67,6 +67,11 @@ describe('adaptOpenAIStreamToAnthropic', () => {
     expect(events[0].type).toBe('message_start')
     expect(events[0].message.role).toBe('assistant')
     expect(events[0].message.model).toBe('gpt-4o')
+
+    const msgDelta = events.find(e => e.type === 'message_delta') as any
+    expect(msgDelta.usage.input_tokens).toBe(10)
+    expect(msgDelta.usage.output_tokens).toBe(5)
+    expect(msgDelta.usage.cache_read_input_tokens).toBe(0)
   })
 
   test('converts text content stream', async () => {
@@ -379,6 +384,33 @@ describe('thinking support (reasoning_content)', () => {
 })
 
 describe('prompt caching support', () => {
+  test('emits final usage in message_delta even when first chunk has no usage', async () => {
+    const events = await collectEvents([
+      makeChunk({
+        choices: [{ index: 0, delta: { content: 'hi' }, finish_reason: null }],
+      }),
+      makeChunk({
+        choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+        usage: {
+          prompt_tokens: 750,
+          completion_tokens: 25,
+          total_tokens: 775,
+          prompt_tokens_details: { cached_tokens: 300 },
+        } as any,
+      }),
+    ])
+
+    const msgStart = events.find(e => e.type === 'message_start') as any
+    expect(msgStart.message.usage.input_tokens).toBe(0)
+    expect(msgStart.message.usage.cache_read_input_tokens).toBe(0)
+
+    const msgDelta = events.find(e => e.type === 'message_delta') as any
+    expect(msgDelta.usage.input_tokens).toBe(750)
+    expect(msgDelta.usage.output_tokens).toBe(25)
+    expect(msgDelta.usage.cache_read_input_tokens).toBe(300)
+    expect(msgDelta.usage.cache_creation_input_tokens).toBe(0)
+  })
+
   test('maps cached_tokens to cache_read_input_tokens', async () => {
     const events = await collectEvents([
       makeChunk({

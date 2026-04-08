@@ -271,7 +271,10 @@ export async function* adaptOpenAIStreamToAnthropic(
           stop_sequence: null,
         },
         usage: {
+          input_tokens: inputTokens,
           output_tokens: outputTokens,
+          cache_creation_input_tokens: 0,
+          cache_read_input_tokens: cachedTokens,
         },
       } as BetaRawMessageStreamEvent
 

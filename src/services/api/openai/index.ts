@@ -103,6 +103,7 @@ export async function* queryModelOpenAI(
 
     // Accumulate content blocks and usage, same as the Anthropic path in claude.ts
     const contentBlocks: Record<number, any> = {}
+    const newMessages: AssistantMessage[] = []
     let partialMessage: any = undefined
     let usage = {
       input_tokens: 0,
@@ -175,16 +176,26 @@ export async function* queryModelOpenAI(
             uuid: randomUUID(),
             timestamp: new Date().toISOString(),
           }
+          newMessages.push(m)
           yield m
           break
         }
         case 'message_delta': {
+          const stopReason = (event as any).delta?.stop_reason
           const deltaUsage = (event as any).usage
           if (deltaUsage) {
             usage = { ...usage, ...deltaUsage }
           }
-          // Update the stop_reason on the last yielded message
-          // (we don't have a reference here, but the consumer handles this)
+          // Mirror Anthropic path behavior: message_delta carries the final
+          // usage/stop_reason after content_block_stop. Mutate in place so
+          // transcript writer references observe the final values.
+          const lastMsg = newMessages.at(-1)
+          if (lastMsg) {
+            lastMsg.message.usage = usage as any
+            if (stopReason !== undefined) {
+              lastMsg.message.stop_reason = stopReason
+            }
+          }
           break
         }
         case 'message_stop':

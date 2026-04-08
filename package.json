@@ -22,6 +22,7 @@
     "repl"
   ],
   "engines": {
+    "node": ">=20.0.0",
     "bun": ">=1.2.0"
   },
   "bin": {
@@ -39,6 +40,7 @@
   ],
   "scripts": {
     "build": "bun run build.ts",
+    "build:node": "bun run build.ts",
     "dev": "bun run scripts/dev.ts",
     "dev:inspect": "bun run scripts/dev-debug.ts",
     "prepublishOnly": "bun run build",
@@ -50,6 +52,8 @@
     "check:unused": "knip-bun",
     "health": "bun run scripts/health-check.ts",
     "postinstall": "node scripts/postinstall.cjs",
+    "pack:offline": "bun run build.ts && node scripts/pack-offline.cjs",
+    "pack:offline:only": "node scripts/pack-offline.cjs",
     "docs:dev": "npx mintlify dev"
   },
   "dependencies": {},
