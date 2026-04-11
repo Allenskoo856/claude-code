@@ -29,3 +29,5 @@ src/utils/vendor/
 __pycache__/
 *.pyc
 logs
+
+data

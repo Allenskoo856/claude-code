@@ -38,19 +38,6 @@ mock.module('../client.js', () => ({
   }),
 }))
 
-mock.module('../convertMessages.js', () => ({
-  anthropicMessagesToOpenAI: () => [],
-}))
-
-mock.module('../convertTools.js', () => ({
-  anthropicToolsToOpenAI: () => [],
-  anthropicToolChoiceToOpenAI: () => undefined,
-}))
-
-mock.module('../modelMapping.js', () => ({
-  resolveOpenAIModel: () => 'gpt-4o',
-}))
-
 const { queryModelOpenAI } = await import('../index.js')
 
 describe('queryModelOpenAI usage write-back', () => {

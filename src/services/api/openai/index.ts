@@ -7,6 +7,11 @@ import type {
   AssistantMessage,
 } from '../../../types/message.js'
 import type { Tools } from '../../../Tool.js'
+import type { Stream } from 'openai/streaming.mjs'
+import type {
+  ChatCompletionChunk,
+  ChatCompletionCreateParamsStreaming,
+} from 'openai/resources/chat/completions/completions.mjs'
 import { getOpenAIClient } from './client.js'
 import { anthropicMessagesToOpenAI } from './convertMessages.js'
 import {
@@ -31,6 +36,7 @@ import {
   createAssistantAPIErrorMessage,
   normalizeContentFromAPI,
 } from '../../../utils/messages.js'
+import type { SDKAssistantMessageError } from '../../../entrypoints/agentSdkTypes.js'
 import {
   isToolSearchEnabled,
   extractDiscoveredToolNames,
@@ -82,7 +88,11 @@ export function buildOpenAIRequestBody(params: {
   toolChoice: any
   enableThinking: boolean
   temperatureOverride?: number
-}): Record<string, any> {
+}): ChatCompletionCreateParamsStreaming & {
+  thinking?: { type: string }
+  enable_thinking?: boolean
+  chat_template_kwargs?: { thinking: boolean }
+} {
   const { model, messages, tools, toolChoice, enableThinking, temperatureOverride } = params
   return {
     model,
@@ -183,7 +193,7 @@ export async function* queryModelOpenAI(
     // 7. Filter out non-standard tools (server tools like advisor)
     const standardTools = toolSchemas.filter(
       (t): t is BetaToolUnion & { type: string } => {
-        const anyT = t as Record<string, unknown>
+        const anyT = t as unknown as Record<string, unknown>
         return (
           anyT.type !== 'advisor_20260301' && anyT.type !== 'computer_20250124'
         )
@@ -215,7 +225,7 @@ export async function* queryModelOpenAI(
     // 10. Get client and make streaming request
     const client = getOpenAIClient({
       maxRetries: 0,
-      fetchOverride: options.fetchOverride,
+      fetchOverride: options.fetchOverride as unknown as typeof fetch,
       source: options.querySource,
     })
 
@@ -360,7 +370,7 @@ export async function* queryModelOpenAI(
     yield createAssistantAPIErrorMessage({
       content: `API Error: ${errorMessage}`,
       apiError: 'api_error',
-      error: error instanceof Error ? error : new Error(String(error)),
+      error: (error instanceof Error ? error : new Error(String(error))) as unknown as SDKAssistantMessageError,
     })
   }
 }
